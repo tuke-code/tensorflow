@@ -19,6 +19,7 @@ limitations under the License.
 #include <memory>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -97,7 +98,8 @@ absl::StatusOr<std::unique_ptr<LoadedExecutable>> PjRtCompiler::Compile(
   return PjRtLoadedExecutable::Create(
       client_, xla_program->mlir_module,
       std::move(xla_compile_options->compile_options),
-      std::move(xla_compile_options->loaded_host_callbacks));
+      std::move(xla_compile_options->loaded_host_callbacks),
+      std::move(xla_compile_options->execution_devices));
 }
 
 absl::StatusOr<std::unique_ptr<Executable>> PjRtCompiler::Compile(
@@ -143,7 +145,8 @@ PjRtCompiler::DeserializeLoadedExecutable(
       client_,
       std::shared_ptr<xla::PjRtLoadedExecutable>(
           std::move(pjrt_loaded_executable)),
-      std::move(xla_deserialize_options->loaded_host_callbacks));
+      std::move(xla_deserialize_options->loaded_host_callbacks),
+      std::move(xla_deserialize_options->execution_devices));
 }
 
 }  // namespace ifrt

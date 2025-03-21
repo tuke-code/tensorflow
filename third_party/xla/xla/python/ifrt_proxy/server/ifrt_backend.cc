@@ -1413,6 +1413,26 @@ Future<BackendInterface::Response> IfrtBackend::HandleCompileRequest(
       }
     }
 
+    if (auto xla_options =
+            llvm::dyn_cast<xla::ifrt::XlaCompileOptions>(options.get())) {
+      if (xla_options->compile_options.executable_build_options
+              .has_device_assignment()) {
+        TF_ASSIGN_OR_RETURN(
+            xla_options->execution_devices,
+            xla::ifrt::GetIfrtDeviceListFromDeviceAssignment(
+                client_.get(),
+                xla_options->compile_options.executable_build_options
+                    .device_assignment()));
+      } else if (xla_options->compile_options.compile_portable_executable) {
+        auto execution_devices =
+            client_->MakeDeviceList({client_->addressable_devices().front()});
+        xla_options->execution_devices = std::move(execution_devices);
+      } else {
+        return absl::InvalidArgumentError(
+            "Device assignment must be specified for non-portable executables");
+      }
+    }
+
     TF_ASSIGN_OR_RETURN(auto executable,
                         client_->GetDefaultCompiler()->Compile(
                             std::move(program), std::move(options)));

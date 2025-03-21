@@ -28,6 +28,7 @@ limitations under the License.
 #include "mlir/IR/OwningOpRef.h"
 #include "xla/pjrt/pjrt_executable.h"
 #include "xla/python/ifrt/compiler.h"
+#include "xla/python/ifrt/device_list.h"
 #include "xla/python/ifrt/host_callback.h"
 
 namespace xla {
@@ -43,12 +44,15 @@ struct XlaCompileOptions
     : llvm::RTTIExtends<XlaCompileOptions, CompileOptions> {
   XlaCompileOptions() = default;
   explicit XlaCompileOptions(xla::CompileOptions compile_options,
+                             DeviceListRef execution_devices,
                              std::vector<tsl::RCReference<LoadedHostCallback>>
                                  loaded_host_callbacks = {})
       : compile_options(std::move(compile_options)),
+        execution_devices(std::move(execution_devices)),
         loaded_host_callbacks(std::move(loaded_host_callbacks)) {}
 
   xla::CompileOptions compile_options;
+  DeviceListRef execution_devices;
   std::vector<tsl::RCReference<LoadedHostCallback>> loaded_host_callbacks;
 
   // CompileOptions implementation.
@@ -70,14 +74,17 @@ struct XlaDeserializeExecutableOptions
   XlaDeserializeExecutableOptions() = default;
   explicit XlaDeserializeExecutableOptions(
       std::optional<xla::CompileOptions> compile_options,
+      DeviceListRef execution_devices,
       std::vector<tsl::RCReference<LoadedHostCallback>> loaded_host_callbacks =
           {})
       : compile_options(std::move(compile_options)),
+        execution_devices(std::move(execution_devices)),
         loaded_host_callbacks(std::move(loaded_host_callbacks)) {}
 
   // `compile_options` may be unspecified if deserialization does not override
   // it.
   std::optional<xla::CompileOptions> compile_options;
+  DeviceListRef execution_devices;
   std::vector<tsl::RCReference<LoadedHostCallback>> loaded_host_callbacks;
 
   // DeserializeExecutableOptions implementation.
@@ -96,6 +103,11 @@ absl::StatusOr<std::unique_ptr<XlaCompileOptions>> GetXlaCompileOptions(
 absl::StatusOr<std::unique_ptr<XlaDeserializeExecutableOptions>>
 GetXlaDeserializeExecutableOptions(
     std::unique_ptr<DeserializeExecutableOptions> options);
+
+// Gets `xla::ifrt::DeviceListRef` from `xla::DeviceAssignment`.
+absl::StatusOr<xla::ifrt::DeviceListRef> GetIfrtDeviceListFromDeviceAssignment(
+    xla::ifrt::Client* ifrt_client,
+    const xla::DeviceAssignment& device_assignment);
 
 }  // namespace ifrt
 }  // namespace xla

@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <map>
@@ -177,12 +178,27 @@ HloSharding HloSharding::PartialTile(
       tile_assignment_last_dim_replicate.num_elements());
   const int64_t num_groups =
       tile_assignment_last_dim_replicate.num_elements() / group_size;
+  const size_t num_dimensions =
+      tile_assignment_last_dim_replicate.num_dimensions();
   std::vector<int32_t> current_group_idx(num_groups, 0);
+  const std::vector<int64_t> group_id_strides = [&]() {
+    if (num_dimensions <= 1) {
+      return std::vector<int64_t>();
+    }
+    std::vector<int64_t> strides(num_dimensions - 1);
+    strides.back() = 1;
+    for (size_t i_plus_1 = num_dimensions - 2; i_plus_1 > 0; --i_plus_1) {
+      strides[i_plus_1 - 1] =
+          strides[i_plus_1] * tile_assignment_last_dim_replicate.dim(i_plus_1);
+    }
+    return strides;
+  }();
+  const int64_t* const group_id_strides_ptr = group_id_strides.data();
   auto get_group_id = [&](absl::Span<const int64_t> indices) {
     int64_t group_id = 0;
-    for (int64_t i = 0; i < indices.size() - 1; ++i) {
-      group_id *= tile_assignment_last_dim_replicate.dim(i);
-      group_id += indices[i];
+    // We use all indices except the last one to compute the group id.
+    for (size_t i = 0; i + 1 < num_dimensions; ++i) {
+      group_id += indices[i] * group_id_strides_ptr[i];
     }
     return group_id;
   };

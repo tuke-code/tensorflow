@@ -4756,6 +4756,14 @@ cc_library(
 )
 
 genrule(
+    name = "viewer_server_h",
+    srcs = ["fusion_explorer/viewer_server.py"],
+    outs = ["viewer_server.h"],
+    cmd = "echo 'const char* kPythonServerCode = R\"python(' > $@ && cat $< >> $@ && echo ')python\";' >> $@",
+    compatible_with = get_compatible_with_portable(),
+)
+
+genrule(
     name = "viewer_html_h",
     srcs = ["fusion_explorer/viewer.html"],
     outs = ["viewer_html.h"],
@@ -4768,10 +4776,13 @@ cc_library(
     srcs = [
         "hlo_graph_dumper.cc",
         ":viewer_html_h",
+        ":viewer_server_h",
     ],
     hdrs = ["hlo_graph_dumper.h"],
     deps = [
         ":pattern_matcher",
+        "//third_party/sqlite",
+        "//third_party/zlib:zlibheaders",
         "//xla:comparison_util",
         "//xla:literal",
         "//xla:shape_util",
@@ -4788,6 +4799,7 @@ cc_library(
         "//xla/tsl/platform:errors",
         "//xla/tsl/platform:status_macros",
         "//xla/tsl/platform:statusor",
+        "//xla/tsl/util:zip_writer",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -4801,6 +4813,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@tsl//tsl/platform:base64",
+        "@tsl//tsl/platform:path",
         "@tsl//tsl/platform:thread_annotations",
     ],
     alwayslink = 1,
